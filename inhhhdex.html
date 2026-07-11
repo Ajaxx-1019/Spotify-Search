@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Spotify Finder</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#111;
+display:flex;
+justify-content:center;
+padding:40px;
+color:white;
+}
+
+.card{
+width:420px;
+background:#1d1d1d;
+padding:20px;
+border-radius:18px;
+}
+
+h2{
+text-align:center;
+margin-bottom:18px;
+}
+
+select,
+input{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border:none;
+border-radius:10px;
+background:#2b2b2b;
+color:white;
+font-size:15px;
+}
+
+button{
+width:100%;
+padding:12px;
+background:#1DB954;
+color:white;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:15px;
+}
+
+#loading{
+display:none;
+margin-top:15px;
+text-align:center;
+color:#aaa;
+}
+
+.result{
+display:none;
+margin-top:18px;
+}
+
+.item{
+display:flex;
+gap:12px;
+align-items:center;
+padding:10px;
+border-radius:10px;
+cursor:pointer;
+transition:.2s;
+}
+
+.item:hover{
+background:#2b2b2b;
+}
+
+.item img{
+width:55px;
+height:55px;
+object-fit:cover;
+border-radius:8px;
+}
+
+.item b{
+display:block;
+}
+
+.item span{
+font-size:13px;
+color:#aaa;
+}
+
+#detail{
+display:none;
+margin-top:20px;
+text-align:center;
+}
+
+#detail img{
+width:140px;
+border-radius:12px;
+margin-bottom:12px;
+}
+
+iframe{
+margin-top:15px;
+width:100%;
+height:152px;
+border:none;
+border-radius:12px;
+display:none;
+}
+
+a{
+color:#1DB954;
+text-decoration:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Spotify Finder</h2>
+
+<select id="type">
+
+<option value="tracks">Track</option>
+
+<option value="artists">Artist</option>
+
+<option value="albums">Album</option>
+
+<option value="playlists">Playlist</option>
+
+</select>
+
+<input
+id="search"
+placeholder="Cari...">
+
+<button onclick="searchSpotify()">
+
+Search
+
+</button>
+
+<div id="loading">
+
+Searching...
+
+</div>
+
+<div
+class="result"
+id="results">
+
+</div>
+
+<div id="detail">
+
+<img id="cover">
+
+<h3 id="title"></h3>
+
+<p id="subtitle"></p>
+
+<a
+id="spotify"
+target="_blank">
+
+Open Spotify
+
+</a>
+
+<iframe
+id="player"
+allow="autoplay; clipboard-write; encrypted-media;">
+</iframe>
+
+</div>
+
+</div>
+
+<script>
+
+const API_TOKEN="apify_api_7b8pCdfWF8D5qM7er0ck0ZghrVDHo52KUYso";
+
+const ENDPOINT=`https://api.apify.com/v2/actors/automation-lab~spotify-scraper/run-sync-get-dataset-items?token=${API_TOKEN}`;
+
+let DATA=[];
+
+async function searchSpotify(){
+
+// ==== PART 2 ====
+const keyword=document.getElementById("search").value.trim();
+
+if(!keyword){
+alert("Masukkan pencarian.");
+return;
+}
+
+document.getElementById("loading").style.display="block";
+document.getElementById("results").style.display="none";
+document.getElementById("detail").style.display="none";
+document.getElementById("player").style.display="none";
+
+const body={
+mode:"search",
+searchTerms:[keyword],
+searchType:document.getElementById("type").value,
+maxResults:10
+};
+
+try{
+
+const res=await fetch(ENDPOINT,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(body)
+});
+
+const data=await res.json();
+
+DATA=data;
+
+const results=document.getElementById("results");
+
+results.innerHTML="";
+
+if(!data.length){
+alert("Tidak ada hasil.");
+document.getElementById("loading").style.display="none";
+return;
+}
+
+data.forEach((item,index)=>{
+
+const img=
+item.albumArt||
+item.imageUrl||
+"https://placehold.co/60";
+
+const title=
+item.name||
+"Unknown";
+
+const sub=
+item.artists||
+item.ownerName||
+item.type||
+"";
+
+results.innerHTML+=`
+<div class="item" onclick="showDetail(${index})">
+
+<img src="${img}">
+
+<div>
+
+<b>${title}</b>
+
+<span>${sub}</span>
+
+</div>
+
+</div>
+`;
+
+});
+
+results.style.display="block";
+
+}catch(e){
+
+console.error(e);
+
+alert("Gagal mengambil data.");
+
+}
+
+document.getElementById("loading").style.display="none";
+
+}
+
+function showDetail(i){
+
+const item=DATA[i];
+
+document.getElementById("detail").style.display="block";
+
+document.getElementById("cover").src=
+item.albumArt||
+item.imageUrl||
+"https://placehold.co/300";
+
+document.getElementById("title").innerText=
+item.name||
+"Unknown";
+
+document.getElementById("subtitle").innerText=
+item.artists||
+item.ownerName||
+item.type||
+"";
+
+document.getElementById("spotify").href=
+item.url||
+"#";
+
+const player=document.getElementById("player");
+
+if(item.type==="track"){
+
+player.style.display="block";
+
+player.src=
+`https://open.spotify.com/embed/track/${item.id}`;
+
+}else{
+
+player.style.display="none";
+
+player.src="";
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
