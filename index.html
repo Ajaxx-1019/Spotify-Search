@@ -63,41 +63,50 @@
             const searchBtn = document.getElementById('searchBtn');
             
             resultDiv.style.display = 'none';
-            statusTxt.innerText = 'Menghubungi API via Proxy, tunggu sebentar...';
+            statusTxt.innerText = 'Menghubungi API via Jalur Bypass, mohon tunggu...';
             spinner.style.display = 'block';
             searchBtn.disabled = true;
+
+            const targetUrl = `https://nexadev.my.id{encodeURIComponent(query)}`;
             
-            try {
-                // 🛠️ MEMAKAI ALLORIGINS PROXY UNTUK MENEMBUS BLOKIR BROWSER HP
-                const targetUrl = `https://nexadev.my.id{encodeURIComponent(query)}`;
-                const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
-                
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                
-                spinner.style.display = 'none';
-                searchBtn.disabled = false;
-                
-                if(data.status && data.result) {
-                    const lagu = data.result;
-                    
-                    document.getElementById('title').innerText = lagu.title;
-                    document.getElementById('artist').innerText = 'Artis: ' + lagu.artist;
-                    document.getElementById('thumb').src = lagu.thumbnail || lagu.image;
-                    document.getElementById('downloadLink').href = lagu.download_url;
-                    
-                    statusTxt.innerText = '✅ Selesai! Klik tombol di bawah untuk mengunduh.';
-                    resultDiv.style.display = 'block';
-                } else {
-                    statusTxt.innerText = '❌ Gagal memproses.';
-                    alert('Lagu tidak ditemukan atau respons API kosong.');
+            // 🛠️ DAFTAR PROXY CADANGAN (Jika Proxy 1 sibuk, otomatis pakai Proxy 2)
+            const proxyList = [
+                `https://codetabs.com{encodeURIComponent(targetUrl)}`,
+                `https://corsproxy.io{encodeURIComponent(targetUrl)}`
+            ];
+
+            let data = null;
+
+            // Loop untuk mencoba proxy satu per satu secara otomatis
+            for (let i = 0; i < proxyList.length; i++) {
+                try {
+                    statusTxt.innerText = `Mencoba jalur koneksi ke-${i + 1}...`;
+                    const response = await fetch(proxyList[i]);
+                    if (response.ok) {
+                        data = await response.json();
+                        break; // Keluar dari loop jika berhasil mendapatkan data
+                    }
+                } catch (e) {
+                    console.log(`Jalur ${i + 1} gagal, mencoba jalur berikutnya...`);
                 }
-            } catch (error) {
-                spinner.style.display = 'none';
-                searchBtn.disabled = false;
-                statusTxt.innerText = '❌ Koneksi bermasalah.';
-                alert('Proxy sedang sibuk. Silakan coba klik tombol Cari lagi.');
-                console.error(error);
+            }
+
+            spinner.style.display = 'none';
+            searchBtn.disabled = false;
+
+            if (data && data.status && data.result) {
+                const lagu = data.result;
+                
+                document.getElementById('title').innerText = lagu.title;
+                document.getElementById('artist').innerText = 'Artis: ' + lagu.artist;
+                document.getElementById('thumb').src = lagu.thumbnail || lagu.image;
+                document.getElementById('downloadLink').href = lagu.download_url;
+                
+                statusTxt.innerText = '✅ Selesai! Klik tombol di bawah untuk mengunduh.';
+                resultDiv.style.display = 'block';
+            } else {
+                statusTxt.innerText = '❌ Gagal memproses.';
+                alert('Semua jalur server sedang sibuk atau lagu tidak ditemukan. Silakan coba beberapa saat lagi.');
             }
         }
     </script>
